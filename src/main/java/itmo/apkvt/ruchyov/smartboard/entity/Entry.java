@@ -25,7 +25,7 @@ public class Entry {
     private String contentType;
 
     @Column
-    private int entryPosition;
+    private long entryPosition;
 
     @Column
     private String css;
@@ -74,11 +74,11 @@ public class Entry {
         this.contentType = contentType;
     }
 
-    public int getEntryPosition() {
+    public long getEntryPosition() {
         return entryPosition;
     }
 
-    public void setEntryPosition(int entryPosition) {
+    public void setEntryPosition(long entryPosition) {
         this.entryPosition = entryPosition;
     }
 

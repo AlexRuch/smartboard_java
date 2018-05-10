@@ -15,10 +15,13 @@ public class Project {
     private String projectName;
 
     @Column
-    private Date createDate;
+    private String projectDescription;
 
     @Column
-    private Date updateData;
+    private Long createDate;
+
+    @Column
+    private Long updateDate;
 
     @Column
     private boolean isEnabled;
@@ -30,10 +33,6 @@ public class Project {
         return projectId;
     }
 
-    public void setProjectId(long projectId) {
-        this.projectId = projectId;
-    }
-
     public String getProjectName() {
         return projectName;
     }
@@ -42,20 +41,28 @@ public class Project {
         this.projectName = projectName;
     }
 
-    public Date getCreateDate() {
+    public String getProjectDescription() {
+        return projectDescription;
+    }
+
+    public void setProjectDescription(String projectDescription) {
+        this.projectDescription = projectDescription;
+    }
+
+    public Long getCreateDate() {
         return createDate;
     }
 
-    public void setCreateDate(Date createDate) {
+    public void setCreateDate(Long createDate) {
         this.createDate = createDate;
     }
 
-    public Date getUpdateData() {
-        return updateData;
+    public Long getUpdateDate() {
+        return updateDate;
     }
 
-    public void setUpdateData(Date updateData) {
-        this.updateData = updateData;
+    public void setUpdateDate(Long updateDate) {
+        this.updateDate = updateDate;
     }
 
     public boolean isEnabled() {

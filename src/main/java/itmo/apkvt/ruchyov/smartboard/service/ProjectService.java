@@ -4,6 +4,7 @@ import itmo.apkvt.ruchyov.smartboard.entity.Entry;
 import itmo.apkvt.ruchyov.smartboard.entity.Project;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ProjectService {
 
@@ -11,13 +12,15 @@ public interface ProjectService {
 
     void deleteProject(final long projectId);
 
-    Project getProject(final long projectId);
+    Optional<Project> getProject(final long projectId);
 
     List<Project> getAllProjects();
 
-    void makeProgectEnabled(final long projectId);
+    void makeProjectEnabled(final long projectId);
 
     void updateProject(final String projectName, final long projectId);
 
     void addEntryToProject(final Entry entry, final long projectId);
+
+    Project updateEntryPosition(final long projectId, final long entryId, final String changeType);
 }
