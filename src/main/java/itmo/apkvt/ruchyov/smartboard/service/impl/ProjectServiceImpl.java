@@ -27,13 +27,14 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public void createProject(String projectName) {
+    public Project createProject(String projectName) {
         Project project = new Project();
         project.setProjectName(projectName);
         project.setCreateDate(new Date().getTime());
         project.setUpdateDate(new Date().getTime());
         projectRepository.save(project);
         projectRepository.flush();
+        return project;
     }
 
     @Override

@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface ProjectService {
 
-    void createProject(final String projectName);
+    Project createProject(final String projectName);
 
     void deleteProject(final long projectId);
 

@@ -4,10 +4,13 @@ import itmo.apkvt.ruchyov.smartboard.entity.Entry;
 import itmo.apkvt.ruchyov.smartboard.entity.Project;
 import itmo.apkvt.ruchyov.smartboard.repository.ProjectRepository;
 import itmo.apkvt.ruchyov.smartboard.service.ProjectService;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,13 +26,13 @@ public class AdminREST {
     }
 
     @RequestMapping(value = "/api/project", method = RequestMethod.POST)
-    public void createProject(@RequestBody final String projectName) {
-        projectService.createProject(projectName);
+    public Project createProject(@RequestBody final String projectName) throws UnsupportedEncodingException {
+        return projectService.createProject(projectName);
     }
 
     @RequestMapping(value = "/api/project", method = RequestMethod.DELETE)
     public void deleteProject(@RequestBody final String projectId) {
-       projectService.deleteProject(Long.parseLong(projectId));
+        projectService.deleteProject(Long.parseLong(projectId));
     }
 
     @RequestMapping(value = "/api/project/{projectId}", method = RequestMethod.GET)
@@ -50,15 +53,15 @@ public class AdminREST {
 
     @RequestMapping(value = "/api/project/update", method = RequestMethod.PUT)
     public void updateProjectName(@RequestParam("projectName") final String projectName,
-                              @RequestParam("projectId") final String projectId) {
+                                  @RequestParam("projectId") final String projectId) {
         projectService.updateProject(projectName, Long.parseLong(projectId));
     }
 
     @RequestMapping(value = "/api/project/update/position", method = RequestMethod.PUT)
-    public void updateEntryPosition(@RequestParam("projectId") final String projectId,
-                                    @RequestParam("entryId") final String entryId,
-                                    @RequestParam("changeType") final String changeType){
+    public Project updateEntryPosition(@RequestBody final String payloadJSON) {
 
+        JSONObject payload = new JSONObject(payloadJSON);
+        return projectService.updateEntryPosition(payload.getLong("projectId"), payload.getLong("entryId"), payload.getString("changeType"));
     }
 
     @RequestMapping(value = "/api/entry/image", method = RequestMethod.POST)
