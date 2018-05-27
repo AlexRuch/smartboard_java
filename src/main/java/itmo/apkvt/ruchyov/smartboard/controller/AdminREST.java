@@ -2,18 +2,19 @@ package itmo.apkvt.ruchyov.smartboard.controller;
 
 import itmo.apkvt.ruchyov.smartboard.entity.Entry;
 import itmo.apkvt.ruchyov.smartboard.entity.Project;
-import itmo.apkvt.ruchyov.smartboard.repository.ProjectRepository;
 import itmo.apkvt.ruchyov.smartboard.service.ProjectService;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 public class AdminREST {
 
@@ -26,7 +27,7 @@ public class AdminREST {
     }
 
     @RequestMapping(value = "/api/project", method = RequestMethod.POST)
-    public Project createProject(@RequestBody final String projectName) throws UnsupportedEncodingException {
+    public Project createProject(@RequestBody final String projectName) {
         return projectService.createProject(projectName);
     }
 
@@ -42,7 +43,6 @@ public class AdminREST {
 
     @RequestMapping(value = "/api/project/all", method = RequestMethod.GET)
     public List<Project> getAllProjects() {
-        System.out.println("REQUEST FROM CLIENT: /api/project/all");
         return projectService.getAllProjects();
     }
 
@@ -57,34 +57,44 @@ public class AdminREST {
         projectService.updateProject(projectName, Long.parseLong(projectId));
     }
 
+
     @RequestMapping(value = "/api/project/update/position", method = RequestMethod.PUT)
     public Project updateEntryPosition(@RequestBody final String payloadJSON) {
-
         JSONObject payload = new JSONObject(payloadJSON);
-        return projectService.updateEntryPosition(payload.getLong("projectId"), payload.getLong("entryId"), payload.getString("changeType"));
-    }
-
-    @RequestMapping(value = "/api/entry/image", method = RequestMethod.POST)
-    public void createImageEntry(@RequestParam("imageFile") final MultipartFile imageFile,
-                                 @RequestParam("entryName") final String entryName,
-                                 @RequestParam("projectId") final String projectId) {
-
+        return projectService.updateEntryPosition(payload.getLong("projectId")
+                , payload.getLong("entryId")
+                , payload.getString("changeType"));
     }
 
     @RequestMapping(value = "/api/entry/text", method = RequestMethod.POST)
-    public void createTextEntry(@RequestParam("entryText") final String entryText,
-                                @RequestParam("entryName") final String entryName,
-                                @RequestParam("projectId") final String projectId) {
-
+    public Project createTextEntry(@RequestBody final String payloadJSON) {
+        JSONObject payload = new JSONObject(payloadJSON);
+        return projectService.addTextEntry(payload.getLong("projectId")
+                , payload.getString("entryName")
+                , payload.getString("entryText"));
     }
 
     @RequestMapping(value = "/api/entry/table", method = RequestMethod.POST)
-    public void createTableEntry(@RequestParam("entryName") final String entryName,
-                                 @RequestParam("tableCSS") final String tableCSS,
-                                 @RequestParam("projectId") final String projectId) {
+    public Project createTableEntry(@RequestBody final String payloadJSON) {
+        JSONObject payload = new JSONObject(payloadJSON);
 
+        JSONArray jsonArray = payload.getJSONArray("tableRows");
+        List<String> rowsList = new ArrayList<>();
+        for (int i = 0; i < jsonArray.length(); i++) {
+            rowsList.add(jsonArray.getString(i));
+        }
+        return projectService.addTableEntry(payload.getLong("projectId")
+                , payload.getString("entryName")
+                , payload.getString("tableCSS")
+                , rowsList);
     }
 
+    @RequestMapping(value = "/api/entry/image", method = RequestMethod.POST)
+    public Project createImageEntry(@RequestParam("entryImage") final MultipartFile entryImage,
+                                    @RequestParam("entryName") final String entryName,
+                                    @RequestParam("projectId") final String projectId) throws IOException {
+        return projectService.addImageEntry(Long.parseLong(projectId), entryName, entryImage);
+    }
 
     @RequestMapping(value = "/api/entry/image", method = RequestMethod.PUT)
     public void updateImageEntry(@RequestParam("imageFile") final MultipartFile imageFile,
@@ -110,9 +120,9 @@ public class AdminREST {
 
     }
 
-    @RequestMapping(value = "/api/entry", method = RequestMethod.DELETE)
-    public void deleteEntry(@RequestBody final String entryId) {
-
+    @RequestMapping(value = "/api/entry", method = RequestMethod.PUT)
+    public Project deleteEntry(@RequestBody final String entryId) {
+        return projectService.deleteEntry(Long.parseLong(entryId));
     }
 
     @RequestMapping(value = "/api/entry/{entryId}", method = RequestMethod.GET)

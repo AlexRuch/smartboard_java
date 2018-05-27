@@ -11,6 +11,6 @@ import java.util.List;
 
 @Repository
 public interface EntryRepository extends JpaRepository<Entry, Long> {
-    @Query("select e from Entry e where e.project =:projectId")
-    List<Entry> findProjectEntries(@Param("projectId") long projectId);
+    @Query("select e from Entry e where e.project =:projectEntry")
+    List<Entry> findProjectEntries(@Param("projectEntry") Project project);
 }

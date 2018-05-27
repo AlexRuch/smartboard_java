@@ -2,16 +2,17 @@ package itmo.apkvt.ruchyov.smartboard.service.impl;
 
 import itmo.apkvt.ruchyov.smartboard.entity.Entry;
 import itmo.apkvt.ruchyov.smartboard.entity.Project;
+import itmo.apkvt.ruchyov.smartboard.entity.TableRow;
 import itmo.apkvt.ruchyov.smartboard.repository.EntryRepository;
 import itmo.apkvt.ruchyov.smartboard.repository.ProjectRepository;
+import itmo.apkvt.ruchyov.smartboard.repository.TableRowRepository;
 import itmo.apkvt.ruchyov.smartboard.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.io.*;
+import java.util.*;
 
 @Service("projectService")
 public class ProjectServiceImpl implements ProjectService {
@@ -20,10 +21,13 @@ public class ProjectServiceImpl implements ProjectService {
 
     private final EntryRepository entryRepository;
 
+    private final TableRowRepository tableRowRepository;
+
     @Autowired
-    public ProjectServiceImpl(ProjectRepository projectRepository, EntryRepository entryRepository) {
+    public ProjectServiceImpl(ProjectRepository projectRepository, EntryRepository entryRepository, TableRowRepository tableRowRepository) {
         this.projectRepository = projectRepository;
         this.entryRepository = entryRepository;
+        this.tableRowRepository = tableRowRepository;
     }
 
     @Override
@@ -65,42 +69,148 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public void updateProject(String projectName, long projectId) {
         Objects.requireNonNull(projectRepository.findById(projectId).orElse(null)).setProjectName(projectName);
+        Objects.requireNonNull(projectRepository.findById(projectId).orElse(null)).setUpdateDate(new Date().getTime());
         projectRepository.flush();
     }
 
-    @Override
-    public void addEntryToProject(Entry entry, long projectId) {
 
+    @Override
+    public Project updateEntryPosition(final long projectId, final long entryPosition, final String changeType) {
+        Project project = projectRepository.getOne(projectId);
+        Long entryId = Objects.requireNonNull(project.getEntryList().stream()
+                .filter(e -> e.getEntryPosition() == entryPosition)
+                .findAny()
+                .orElse(null))
+                .getEntryId();
+        if (changeType.equals("UP")) {
+
+            Objects.requireNonNull(project.getEntryList().stream()
+                    .filter(e -> e.getEntryPosition() == entryPosition - 1)
+                    .findAny()
+                    .orElse(null))
+                    .setEntryPosition(entryPosition);
+            Objects.requireNonNull(project.getEntryList().stream()
+                    .filter(e -> e.getEntryId() == entryId)
+                    .findAny()
+                    .orElse(null))
+                    .setEntryPosition(entryPosition - 1);
+
+        } else if (changeType.equals("DOWN")) {
+
+            Objects.requireNonNull(project.getEntryList().stream()
+                    .filter(e -> e.getEntryPosition() == entryPosition + 1)
+                    .findAny()
+                    .orElse(null))
+                    .setEntryPosition(entryPosition);
+            Objects.requireNonNull(project.getEntryList().stream()
+                    .filter(e -> e.getEntryId() == entryId)
+                    .findAny()
+                    .orElse(null))
+                    .setEntryPosition(entryPosition + 1);
+        }
+        entryRepository.flush();
+        project.setUpdateDate(new Date().getTime());
+        projectRepository.saveAndFlush(project);
+        return projectRepository.findById(projectId).orElse(null);
     }
 
     @Override
-    public Project updateEntryPosition(final long projectId, final long entryId, final String changeType) {
-        if (changeType.equals("UP")) {
-            Objects.requireNonNull(entryRepository.findProjectEntries(projectId).stream()
-                    .filter(e -> e.getEntryId() == entryId)
-                    .findAny()
-                    .orElse(null))
-                    .setEntryPosition(entryId + 1);
-            Objects.requireNonNull(entryRepository.findProjectEntries(projectId).stream()
-                    .filter(e -> e.getEntryId() == entryId + 1)
-                    .findAny()
-                    .orElse(null))
-                    .setEntryPosition(entryId);
-            entryRepository.flush();
-        } else if (changeType.equals("DOWN")) {
-            Objects.requireNonNull(entryRepository.findProjectEntries(projectId).stream()
-                    .filter(e -> e.getEntryId() == entryId)
-                    .findAny()
-                    .orElse(null))
-                    .setEntryPosition(entryId - 1);
-            Objects.requireNonNull(entryRepository.findProjectEntries(projectId).stream()
-                    .filter(e -> e.getEntryId() == entryId - 1)
-                    .findAny()
-                    .orElse(null))
-                    .setEntryPosition(entryId);
-            entryRepository.flush();
-        }
+    public Project addTextEntry(long projectId, String entryName, String entryText) {
+        Project project = projectRepository.getOne(projectId);
 
-        return projectRepository.findById(projectId).orElse(null);
+        Entry entry = new Entry(entryName, entryText, "TEXT", project.getEntryList().size() + 1, project);
+        entryRepository.saveAndFlush(entry);
+
+        project.getEntryList().add(entry);
+
+        project.setUpdateDate(new Date().getTime());
+        projectRepository.saveAndFlush(project);
+
+        return project;
+    }
+
+    private Properties imageProperties = new Properties();
+
+    {
+        try {
+            imageProperties.load(ProjectServiceImpl.class.getResourceAsStream("/image.properties"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public Project addImageEntry(long projectId, String entryName, MultipartFile multipartFile) throws IOException {
+        byte[] imageBytes = multipartFile.getBytes();
+        String name = String.valueOf(new Date().getTime()) + ".jpg";
+        File dir = new File(imageProperties.getProperty("image.fs_path"));
+        if (!dir.exists()) {
+            dir.mkdir();
+        }
+        File imageFile = new File(dir.getAbsolutePath() + File.separator + name);
+        BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(imageFile));
+        bufferedOutputStream.write(imageBytes);
+        bufferedOutputStream.flush();
+        bufferedOutputStream.close();
+
+        Project project = projectRepository.getOne(projectId);
+
+        Entry entry = new Entry(entryName
+                , imageProperties.getProperty("image.db_path") + name
+                , "IMAGE"
+                , project.getEntryList().size() + 1
+                , project);
+
+        project.getEntryList().add(entry);
+        project.setUpdateDate(new Date().getTime());
+        entryRepository.saveAndFlush(entry);
+        projectRepository.saveAndFlush(project);
+
+        return project;
+    }
+
+    @Override
+    public Project addTableEntry(long projectId, String entryName, String css, List<String> tableRows) {
+        Project project = projectRepository.getOne(projectId);
+        Entry entry = new Entry(entryName
+                , "TABLE"
+                , project.getEntryList().size() + 1
+                , css
+                , project);
+        entryRepository.saveAndFlush(entry);
+        project.getEntryList().add(entry);
+        projectRepository.saveAndFlush(project);
+
+        for (String rowText : tableRows) {
+            TableRow tableRow = new TableRow(rowText, entry);
+            tableRowRepository.saveAndFlush(tableRow);
+            entry.getTableRowList().add(tableRow);
+        }
+        entryRepository.saveAndFlush(entry);
+        return project;
+    }
+
+
+    @Override
+    public Project deleteEntry(long entryId) {
+        Project project = entryRepository.getOne(entryId).getProject();
+        long position = entryRepository.getOne(entryId).getEntryPosition();
+        Entry entryEntity = entryRepository.getOne(entryId);
+        if (entryEntity.getContentType().equals("IMAGE")){
+            File image = new File(imageProperties.getProperty("image.fs_path") + entryEntity.getImagePath().replace(imageProperties.getProperty("image.db_path"), ""));
+            image.delete();
+        } else if (entryEntity.getContentType().equals("TABLE")){
+            tableRowRepository.deleteByEntry(entryEntity);
+        }
+        entryRepository.deleteById(entryId);
+        for (Entry entry : entryRepository.findProjectEntries(project)) {
+            if (entry.getEntryPosition() > position) {
+                entry.setEntryPosition(entry.getEntryPosition() - 1);
+            }
+        }
+        entryRepository.flush();
+        project.setUpdateDate(new Date().getTime());
+        projectRepository.saveAndFlush(project);
+        return project;
     }
 }

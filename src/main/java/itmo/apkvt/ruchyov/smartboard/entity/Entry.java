@@ -3,10 +3,35 @@ package itmo.apkvt.ruchyov.smartboard.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 public class Entry {
+
+    public Entry() {
+    }
+
+    public Entry(String name, String content, String contentType, long entryPosition, Project project) {
+        this.name = name;
+        if (contentType.equals("TEXT")) {
+            this.entryText = content;
+        } else if (contentType.equals("IMAGE")) {
+            this.imagePath = content;
+        }
+        this.contentType = contentType;
+        this.entryPosition = entryPosition;
+        this.project = project;
+    }
+
+    public Entry(String name, String contentType, long entryPosition, String css, Project project) {
+        this.name = name;
+        this.contentType = contentType;
+        this.entryPosition = entryPosition;
+        this.css = css;
+        this.project = project;
+        this.tableRowList = new ArrayList<>();
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -105,5 +130,14 @@ public class Entry {
 
     public void setTableRowList(List<TableRow> tableRowList) {
         this.tableRowList = tableRowList;
+    }
+
+
+    @Override
+    public String toString() {
+        return "Entry{" +
+                "entryId=" + entryId +
+                ", name='" + name + '\'' +
+                ", entryPosition=" + entryPosition;
     }
 }

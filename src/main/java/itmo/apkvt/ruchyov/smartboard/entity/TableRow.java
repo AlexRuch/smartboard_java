@@ -6,6 +6,16 @@ import javax.persistence.*;
 
 @Entity
 public class TableRow {
+
+    public TableRow() {
+
+    }
+
+    public TableRow(String rowText, Entry entry) {
+        this.rowText = rowText;
+        this.entry = entry;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;

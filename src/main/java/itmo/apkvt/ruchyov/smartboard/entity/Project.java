@@ -1,9 +1,12 @@
 package itmo.apkvt.ruchyov.smartboard.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import javax.persistence.*;
 import java.util.Date;
 import java.util.List;
 
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 public class Project {
 
@@ -79,5 +82,18 @@ public class Project {
 
     public void setEntryList(List<Entry> entryList) {
         this.entryList = entryList;
+    }
+
+    @Override
+    public String toString() {
+        return "Project{" +
+                "projectId=" + projectId +
+                ", projectName='" + projectName + '\'' +
+                ", projectDescription='" + projectDescription + '\'' +
+                ", createDate=" + createDate +
+                ", updateDate=" + updateDate +
+                ", isEnabled=" + isEnabled +
+                ", entryList=" + entryList +
+                '}';
     }
 }
