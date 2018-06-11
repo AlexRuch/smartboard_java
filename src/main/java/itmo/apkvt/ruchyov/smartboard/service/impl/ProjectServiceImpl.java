@@ -9,6 +9,7 @@ import itmo.apkvt.ruchyov.smartboard.repository.TableRowRepository;
 import itmo.apkvt.ruchyov.smartboard.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
@@ -30,6 +31,7 @@ public class ProjectServiceImpl implements ProjectService {
         this.tableRowRepository = tableRowRepository;
     }
 
+    @Transactional
     @Override
     public Project createProject(String projectName) {
         Project project = new Project();
@@ -41,21 +43,41 @@ public class ProjectServiceImpl implements ProjectService {
         return project;
     }
 
+    @Transactional
     @Override
     public void deleteProject(long projectId) {
+        System.out.println("PROJECT ID: " + projectId);
+        Project project = projectRepository.getOne(projectId);
+        project.getEntryList().forEach(tableRowRepository::deleteByEntry);
+        for (Entry entry : project.getEntryList()) {
+            if (entry.getContentType().equals("IMAGE")) {
+                File image = new File(imageProperties.getProperty("image.fs_path") + entry.getImagePath().replace(imageProperties.getProperty("image.db_path"), ""));
+                image.delete();
+            }
+        }
+        entryRepository.deleteProjectEntries(project);
         projectRepository.deleteById(projectId);
     }
 
+    @Transactional
     @Override
     public Optional<Project> getProject(long projectId) {
         return projectRepository.findById(projectId);
     }
 
+    @Transactional
     @Override
     public List<Project> getAllProjects() {
         return projectRepository.findAll();
     }
 
+    @Transactional
+    @Override
+    public Project getEnableProject() {
+        return projectRepository.findEnabled();
+    }
+
+    @Transactional
     @Override
     public void makeProjectEnabled(long projectId) {
         if (projectRepository.findEnabled() != null) {
@@ -66,6 +88,7 @@ public class ProjectServiceImpl implements ProjectService {
         projectRepository.flush();
     }
 
+    @Transactional
     @Override
     public void updateProject(String projectName, long projectId) {
         Objects.requireNonNull(projectRepository.findById(projectId).orElse(null)).setProjectName(projectName);
@@ -73,7 +96,7 @@ public class ProjectServiceImpl implements ProjectService {
         projectRepository.flush();
     }
 
-
+    @Transactional
     @Override
     public Project updateEntryPosition(final long projectId, final long entryPosition, final String changeType) {
         Project project = projectRepository.getOne(projectId);
@@ -114,6 +137,7 @@ public class ProjectServiceImpl implements ProjectService {
         return projectRepository.findById(projectId).orElse(null);
     }
 
+    @Transactional
     @Override
     public Project addTextEntry(long projectId, String entryName, String entryText) {
         Project project = projectRepository.getOne(projectId);
@@ -139,6 +163,7 @@ public class ProjectServiceImpl implements ProjectService {
         }
     }
 
+    @Transactional
     @Override
     public Project addImageEntry(long projectId, String entryName, MultipartFile multipartFile) throws IOException {
         byte[] imageBytes = multipartFile.getBytes();
@@ -169,6 +194,7 @@ public class ProjectServiceImpl implements ProjectService {
         return project;
     }
 
+    @Transactional
     @Override
     public Project addTableEntry(long projectId, String entryName, String css, List<String> tableRows) {
         Project project = projectRepository.getOne(projectId);
@@ -190,16 +216,16 @@ public class ProjectServiceImpl implements ProjectService {
         return project;
     }
 
-
+    @Transactional
     @Override
     public Project deleteEntry(long entryId) {
         Project project = entryRepository.getOne(entryId).getProject();
         long position = entryRepository.getOne(entryId).getEntryPosition();
         Entry entryEntity = entryRepository.getOne(entryId);
-        if (entryEntity.getContentType().equals("IMAGE")){
+        if (entryEntity.getContentType().equals("IMAGE")) {
             File image = new File(imageProperties.getProperty("image.fs_path") + entryEntity.getImagePath().replace(imageProperties.getProperty("image.db_path"), ""));
             image.delete();
-        } else if (entryEntity.getContentType().equals("TABLE")){
+        } else if (entryEntity.getContentType().equals("TABLE")) {
             tableRowRepository.deleteByEntry(entryEntity);
         }
         entryRepository.deleteById(entryId);

@@ -8,21 +8,23 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "*")
 @RestController
-public class AdminREST {
+public class SmartboardController {
 
 
     private final ProjectService projectService;
 
     @Autowired
-    public AdminREST(ProjectService projectService) {
+    public SmartboardController(ProjectService projectService) {
         this.projectService = projectService;
     }
 
@@ -31,9 +33,10 @@ public class AdminREST {
         return projectService.createProject(projectName);
     }
 
-    @RequestMapping(value = "/api/project", method = RequestMethod.DELETE)
-    public void deleteProject(@RequestBody final String projectId) {
+    @RequestMapping(value = "/api/project", method = RequestMethod.PUT)
+    public List<Project> deleteProject(@RequestBody final String projectId) {
         projectService.deleteProject(Long.parseLong(projectId));
+        return projectService.getAllProjects();
     }
 
     @RequestMapping(value = "/api/project/{projectId}", method = RequestMethod.GET)
@@ -47,8 +50,9 @@ public class AdminREST {
     }
 
     @RequestMapping(value = "/api/project/enable", method = RequestMethod.PUT)
-    public void makeProjectEnabled(@RequestBody final String projectId) {
+    public void makeProjectEnabled(@RequestBody final String projectId) throws IOException {
         projectService.makeProjectEnabled(Long.parseLong(projectId));
+        sendDataToClient();
     }
 
     @RequestMapping(value = "/api/project/update", method = RequestMethod.PUT)
@@ -128,6 +132,27 @@ public class AdminREST {
     @RequestMapping(value = "/api/entry/{entryId}", method = RequestMethod.GET)
     public Entry getEntry(@PathVariable("entryId") final String entryId) {
         return null;
+    }
+
+    private SseEmitter emitter;
+    private final CopyOnWriteArrayList<SseEmitter> emitters = new CopyOnWriteArrayList<>();
+
+
+    @RequestMapping(value = "/live/update")
+    public SseEmitter liveUpdate() throws IOException {
+        System.out.println(emitters.size());
+        emitter = new SseEmitter(0L);
+        this.emitters.add(emitter);
+        emitter.onCompletion(() -> this.emitters.remove(emitter));
+        emitter.onTimeout(() -> this.emitters.remove(emitter));
+        sendDataToClient();
+        return emitter;
+    }
+
+
+    private void sendDataToClient() throws IOException {
+        System.out.println(projectService.getEnableProject());
+        emitter.send(projectService.getEnableProject());
     }
 
 

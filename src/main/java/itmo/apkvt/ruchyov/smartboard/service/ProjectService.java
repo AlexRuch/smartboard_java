@@ -17,6 +17,8 @@ public interface ProjectService {
 
     List<Project> getAllProjects();
 
+    Project getEnableProject();
+
     void makeProjectEnabled(final long projectId);
 
     void updateProject(final String projectName, final long projectId);
